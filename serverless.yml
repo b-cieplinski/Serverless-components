@@ -1,0 +1,95 @@
+service: sls
+frameworkVersion: '3'
+provider:
+  name: aws
+  runtime: nodejs18.x
+  profile: default
+  iamRoleStatements:
+  - Effect: Allow
+    Action:
+      - dynamodb:*
+      - s3:*
+    Resource: '*'
+  apiKeys:
+  - MyFirstApiKey
+  environment:
+    tableName: ${self:custom.tableName}
+    bucketName: ${self:custom.bucketName}
+
+plugins:
+  - serverless-webpack
+  - serverless-s3-sync
+  - serverless-add-api-key
+
+
+package:
+  individually: true
+
+custom:
+  tableName: player-points
+  bucketName: testingserverlesscdthingmagic-2137
+  apiKeys:
+  - name: name1
+
+  s3Sync:
+      - bucketName: testingserverlesscdthingmagic-2137
+        localDir: UploadData
+
+
+functions:
+  getUser:
+    handler: endpoints/getUser.handler
+    events:
+      - http:
+          path: 'get-user/{ID}'
+          method: GET
+          cors: true
+          private: true
+  getPlayerScore:
+    handler: endpoints/getPlayerScore.handler
+    events:
+      - http:
+          path: 'get-player-score/{ID}'
+          method: GET
+          cors: true
+  createPlayerScore:
+    handler: endpoints/createPlayerScore.handler
+    events:
+      - http:
+          path: 'create-player-score/{ID}'
+          method: POST
+          cors: true
+
+  createFile:
+    handler: endpoints/createFile.handler
+    events:
+      - http:
+          path: 'create-file/{fileName}'
+          method: POST
+          cors: true
+
+  getFile:
+    handler: endpoints/getFile.handler
+    events:
+      - http:
+          path: 'get-file/{fileName}'
+          method: GET
+          cors: true
+
+resources:
+  Resources:
+    DemoBucketUpload:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: testingserverlesscdthingmagic-2137
+    MyDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        TableName: '${self:custom.tableName}'
+        AttributeDefinitions:
+          - AttributeName: ID
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ID
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
