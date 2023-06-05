@@ -8,7 +8,7 @@ const withHooks = useHooks({
 
 const hooksWithValidation = ({bodySchema, pathSchema}) => {
     return useHooks({
-        before: [logEvent, parseEvent],
+        before: [logEvent, parseEvent, validateEventBody, validatePaths],
         after: [],
         onError: [handleUnexpectedError]
     },
@@ -36,6 +36,27 @@ const validateEventBody = async state => {
         await bodySchema.validate(event.body, {strict: true})
     } catch (error) {
         console.log('Yep validation error of event.body', error)
+        //tell the lambda hooks lib that something is wrong and to stop running
+        state.exit = true
+        //Whats happening 
+        state.response = {  statusCode: 400, body: JSON.stringify({error: error.message}) }
+    }
+    return state;
+}
+
+const validatePaths = async state => {
+    const { pathSchema } = state.config
+
+    if (!pathSchema) {
+        throw Error('missing the required path schema')
+    }
+
+    try {
+        const {event} = state;
+
+        await pathSchema.validate(event.pathParameters, {strict: true})
+    } catch (error) {
+        console.log('Yep validation error of event.pathParameters', error)
         //tell the lambda hooks lib that something is wrong and to stop running
         state.exit = true
         //Whats happening 
